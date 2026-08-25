@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+:root {
+  --accent: #39ff14;
+  --surface: #12261c;
+  --surface-elevated: #1a3326;
+}
+
+body {
+  background: radial-gradient(circle at top, #123323 0%, #0a1f14 45%, #071610 100%);
+}
