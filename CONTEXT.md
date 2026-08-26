@@ -9,7 +9,7 @@ Software that hosts many independent Leagues. Authenticated Viewers can browse a
 _Avoid_: tenant (in user-facing language), organisation
 
 **Master Admin**:
-The single administrator who manages all Leagues and Players on the Platform. Authenticated by email and password.
+The single administrator who manages all Leagues, the Platform Player pool, and League rosters. Authenticated by email and password.
 _Avoid_: league admin, platform admin, super user
 
 **Platform password**:
@@ -21,7 +21,7 @@ A separate credential that unlocks interactive Kiosk mode on a specific machine 
 _Avoid_: pin, play password
 
 **League**:
-A structured competition among Players with a defined **League format**. Created and managed by the Master Admin. Becomes a **Past League** when every required Game has been played or forfeited.
+A structured competition with a **League roster** of Players and a defined **League format**. Created and managed by the Master Admin. Becomes a **Past League** when every required Game has been played or forfeited.
 _Avoid_: division
 
 **League format**:
@@ -41,8 +41,16 @@ The procedure when two or more Players share the top win count at League complet
 _Avoid_: playoff, shootout
 
 **Player**:
-A person registered in a League with a display name, nickname, avatar, and optional blurb. Eligible to appear in Games and on the League Table.
+A person on the Platform with a display name, nickname, avatar, and optional blurb. Managed in the **Player pool** by the Master Admin; eligible for Games and the League Table only when on a League's **League roster**.
 _Avoid_: member, user (when meaning a Player)
+
+**Player pool**:
+All Players registered on the Platform. The Master Admin creates and edits profiles here; a Player can belong to more than one League roster over time.
+_Avoid_: directory, global roster, member list
+
+**League roster**:
+The Players assigned to a specific League for that competition. Built by adding Players from the Player pool; removing someone from a roster does not delete them from the pool.
+_Avoid_: squad, team list, entrants
 
 **Pairing**:
 The official contest relationship between two Players in a League, capped by the League format (one or two Games). A Pairing is not pre-scheduled; either Player initiates a Game by selecting an opponent they have not yet finished playing.
