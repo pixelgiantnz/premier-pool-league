@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { AuthForm, ActionButton, SubmitButton } from "@/components/action-form";
+import { AuthForm, SubmitButton } from "@/components/action-form";
 import { Field } from "@/components/auth-panel";
 import { DeleteLeagueForm } from "@/components/admin-buttons";
 import { SessionBar } from "@/components/session-bar";
@@ -10,36 +9,35 @@ import {
 } from "@/app/actions/leagues";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { leagueFormatLabel } from "../../../../lib/league/format";
-import { tierAllowsMasterAdminActions } from "../../../../lib/auth/tiers";
-import { getConvexClient } from "@/lib/convex-server";
-import { getCurrentAccessTier, getSessionToken } from "@/lib/session";
+import {
+  leagueFormatLabel,
+  leagueFormatOptions,
+  type LeagueFormat,
+} from "../../../../lib/league/format";
+import { requireMasterAdminPageAccess } from "@/lib/admin-session";
+import { getConvexClient, queryNow } from "@/lib/convex-server";
 
 export default async function AdminLeaguesPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; created?: string; deleted?: string }>;
 }) {
-  const tier = await getCurrentAccessTier();
+  const { tier, sessionToken } = await requireMasterAdminPageAccess();
   const params = await searchParams;
-
-  if (!tierAllowsMasterAdminActions(tier)) {
-    redirect("/admin/login");
-  }
-
-  const sessionToken = await getSessionToken();
-  if (!sessionToken) redirect("/admin/login");
 
   let leagues: Array<{
     _id: Id<"leagues">;
     name: string;
-    format: "singleRoundRobin" | "doubleRoundRobin";
+    format: LeagueFormat;
     status: "active" | "past";
   }> = [];
 
   try {
     const client = getConvexClient();
-    leagues = await client.query(api.leagues.listLeagues, { sessionToken });
+    leagues = await client.query(api.leagues.listLeagues, {
+      sessionToken,
+      now: queryNow(),
+    });
   } catch {
     return (
       <>
@@ -117,12 +115,11 @@ export default async function AdminLeaguesPage({
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2 disabled:opacity-60"
                 defaultValue="singleRoundRobin"
               >
-                <option value="singleRoundRobin">
-                  {leagueFormatLabel("singleRoundRobin")}
-                </option>
-                <option value="doubleRoundRobin">
-                  {leagueFormatLabel("doubleRoundRobin")}
-                </option>
+                {leagueFormatOptions().map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <SubmitButton label="Create League" pendingLabel="Creating…" />

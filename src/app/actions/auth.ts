@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { getConvexClient, SESSION_COOKIE } from "@/lib/convex-server";
+import { mutationErrorMessage } from "@/lib/server-action-utils";
 
 const ONE_WEEK = 60 * 60 * 24 * 7;
 
@@ -22,11 +23,6 @@ async function clearSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
 }
-
-function mutationErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
 export async function bootstrapMasterAdminAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");

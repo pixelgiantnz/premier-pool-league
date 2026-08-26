@@ -43,9 +43,9 @@ export const passwordsConfigured = query({
 });
 
 export const getSessionByToken = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const session = await lookupSessionByToken(ctx, token);
+  args: { token: v.string(), now: v.number() },
+  handler: async (ctx, { token, now }) => {
+    const session = await lookupSessionByToken(ctx, token, now);
     if (!session) return null;
     return {
       tier: session.tier,
@@ -198,7 +198,7 @@ export const upgradeSessionToKiosk = mutation({
     kioskPassword: v.string(),
   },
   handler: async (ctx, { sessionToken, kioskPassword }) => {
-    const session = await lookupSessionByToken(ctx, sessionToken);
+    const session = await lookupSessionByToken(ctx, sessionToken, Date.now());
     if (!session) {
       throw new Error("Session expired or invalid");
     }
@@ -231,7 +231,7 @@ export const updatePlatformPassword = mutation({
     newPassword: v.string(),
   },
   handler: async (ctx, { sessionToken, newPassword }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     if (newPassword.length < 4) {
       throw new Error("Platform password must be at least 4 characters");
@@ -256,7 +256,7 @@ export const updateKioskPassword = mutation({
     newPassword: v.string(),
   },
   handler: async (ctx, { sessionToken, newPassword }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     if (newPassword.length < 4) {
       throw new Error("Kiosk password must be at least 4 characters");

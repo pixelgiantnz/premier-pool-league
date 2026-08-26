@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthForm, ActionButton, SubmitButton } from "@/components/action-form";
-import { Field } from "@/components/auth-panel";
 import { SessionBar } from "@/components/session-bar";
 import {
   addPlayerToLeagueAction,
@@ -9,10 +8,10 @@ import {
 } from "@/app/actions/leagues";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { leagueFormatLabel } from "../../../../../lib/league/format";
-import { tierAllowsMasterAdminActions } from "../../../../../lib/auth/tiers";
-import { getConvexClient } from "@/lib/convex-server";
-import { getCurrentAccessTier, getSessionToken } from "@/lib/session";
+import { leagueFormatLabel, type LeagueFormat } from "../../../../../lib/league/format";
+import { requireMasterAdminPageAccess } from "@/lib/admin-session";
+import { parseConvexId } from "@/lib/convex-ids";
+import { getConvexClient, queryNow } from "@/lib/convex-server";
 
 export default async function AdminLeagueRosterPage({
   params,
@@ -26,22 +25,17 @@ export default async function AdminLeagueRosterPage({
   }>;
 }) {
   const { id } = await params;
-  const leagueId = id as Id<"leagues">;
+  const leagueId = parseConvexId<"leagues">(id);
+  if (!leagueId) redirect("/admin/leagues");
+
   const queryParams = await searchParams;
-  const tier = await getCurrentAccessTier();
-
-  if (!tierAllowsMasterAdminActions(tier)) {
-    redirect("/admin/login");
-  }
-
-  const sessionToken = await getSessionToken();
-  if (!sessionToken) redirect("/admin/login");
+  const { tier, sessionToken } = await requireMasterAdminPageAccess();
 
   const client = getConvexClient();
   let league: {
     _id: Id<"leagues">;
     name: string;
-    format: "singleRoundRobin" | "doubleRoundRobin";
+    format: LeagueFormat;
     status: "active" | "past";
   };
   let roster: Array<{
@@ -62,10 +56,15 @@ export default async function AdminLeagueRosterPage({
 
   try {
     [league, roster, availablePlayers] = await Promise.all([
-      client.query(api.leagues.getLeague, { sessionToken, leagueId }),
-      client.query(api.players.listRosterByLeague, { sessionToken, leagueId }),
+      client.query(api.leagues.getLeague, { sessionToken, now: queryNow(), leagueId }),
+      client.query(api.players.listRosterByLeague, {
+        sessionToken,
+        now: queryNow(),
+        leagueId,
+      }),
       client.query(api.players.listAvailablePlayersForLeague, {
         sessionToken,
+        now: queryNow(),
         leagueId,
       }),
     ]);

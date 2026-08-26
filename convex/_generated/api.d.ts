@@ -10,8 +10,12 @@
 
 import type * as auth from "../auth.js";
 import type * as leagues from "../leagues.js";
+import type * as lib_leagues from "../lib/leagues.js";
+import type * as lib_limits from "../lib/limits.js";
 import type * as lib_password from "../lib/password.js";
+import type * as lib_players from "../lib/players.js";
 import type * as lib_sessions from "../lib/sessions.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as players from "../players.js";
 
 import type {
@@ -23,8 +27,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   leagues: typeof leagues;
+  "lib/leagues": typeof lib_leagues;
+  "lib/limits": typeof lib_limits;
   "lib/password": typeof lib_password;
+  "lib/players": typeof lib_players;
   "lib/sessions": typeof lib_sessions;
+  "lib/validators": typeof lib_validators;
   players: typeof players;
 }>;
 

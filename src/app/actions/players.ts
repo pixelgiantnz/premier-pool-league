@@ -2,22 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { getConvexClient } from "@/lib/convex-server";
-import { getSessionToken } from "@/lib/session";
-
-function mutationErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
-async function requireSessionToken(): Promise<string> {
-  const token = await getSessionToken();
-  if (!token) redirect("/admin/login");
-  return token;
-}
+import {
+  mutationErrorMessage,
+  requireFormId,
+  requireMasterAdminSessionToken,
+} from "@/lib/server-action-utils";
 
 export async function createPlayerAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
+  const sessionToken = await requireMasterAdminSessionToken();
   const displayName = String(formData.get("displayName") ?? "");
   const nickname = String(formData.get("nickname") ?? "");
   const avatar = String(formData.get("avatar") ?? "");
@@ -42,8 +35,12 @@ export async function createPlayerAction(formData: FormData) {
 }
 
 export async function updatePlayerAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
+  const sessionToken = await requireMasterAdminSessionToken();
+  const playerId = requireFormId<"players">(
+    formData,
+    "playerId",
+    "/admin/players?error=invalid-player",
+  );
   const displayName = String(formData.get("displayName") ?? "");
   const nickname = String(formData.get("nickname") ?? "");
   const avatar = String(formData.get("avatar") ?? "");
@@ -69,8 +66,12 @@ export async function updatePlayerAction(formData: FormData) {
 }
 
 export async function removePlayerAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
+  const sessionToken = await requireMasterAdminSessionToken();
+  const playerId = requireFormId<"players">(
+    formData,
+    "playerId",
+    "/admin/players?error=invalid-player",
+  );
 
   const client = getConvexClient();
   try {

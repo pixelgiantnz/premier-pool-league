@@ -1,6 +1,14 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { MAX_ADMIN_LIST_ROWS } from "./lib/limits";
+import { requireLeague } from "./lib/leagues";
+import { loadRosterPlayers, toPlayerSummary } from "./lib/players";
 import { requireMasterAdminSession } from "./lib/sessions";
+import {
+  masterAdminQueryArgs,
+  playerSummaryValidator,
+  rosterPlayerValidator,
+} from "./lib/validators";
 
 function normalizeRequired(value: string, label: string): string {
   const trimmed = value.trim();
@@ -10,84 +18,44 @@ function normalizeRequired(value: string, label: string): string {
   return trimmed;
 }
 
-function playerSummary(player: {
-  _id: import("./_generated/dataModel").Id<"players">;
-  displayName: string;
-  nickname: string;
-  avatar: string;
-  blurb?: string;
-}) {
-  return {
-    _id: player._id,
-    displayName: player.displayName,
-    nickname: player.nickname,
-    avatar: player.avatar,
-    blurb: player.blurb,
-  };
-}
-
 export const listAllPlayers = query({
-  args: { sessionToken: v.string() },
-  handler: async (ctx, { sessionToken }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+  args: masterAdminQueryArgs,
+  returns: v.array(playerSummaryValidator),
+  handler: async (ctx, { sessionToken, now }) => {
+    await requireMasterAdminSession(ctx, sessionToken, now);
 
-    const players = await ctx.db.query("players").collect();
+    const players = await ctx.db.query("players").take(MAX_ADMIN_LIST_ROWS);
     return players
-      .map(playerSummary)
+      .map(toPlayerSummary)
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   },
 });
 
 export const listRosterByLeague = query({
   args: {
-    sessionToken: v.string(),
+    ...masterAdminQueryArgs,
     leagueId: v.id("leagues"),
   },
-  handler: async (ctx, { sessionToken, leagueId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
-
-    const league = await ctx.db.get(leagueId);
-    if (!league) {
-      throw new Error("League not found");
-    }
-
-    const rosterEntries = await ctx.db
-      .query("leagueRosters")
-      .withIndex("by_league", (q) => q.eq("leagueId", leagueId))
-      .collect();
-
-    const players = await Promise.all(
-      rosterEntries.map(async (entry) => {
-        const player = await ctx.db.get(entry.playerId);
-        if (!player) return null;
-        return {
-          rosterId: entry._id,
-          ...playerSummary(player),
-        };
-      }),
-    );
-
-    return players
-      .filter((player): player is NonNullable<typeof player> => player !== null)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  returns: v.array(rosterPlayerValidator),
+  handler: async (ctx, { sessionToken, now, leagueId }) => {
+    await requireMasterAdminSession(ctx, sessionToken, now);
+    await requireLeague(ctx, leagueId);
+    return loadRosterPlayers(ctx, leagueId);
   },
 });
 
 export const listAvailablePlayersForLeague = query({
   args: {
-    sessionToken: v.string(),
+    ...masterAdminQueryArgs,
     leagueId: v.id("leagues"),
   },
-  handler: async (ctx, { sessionToken, leagueId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
-
-    const league = await ctx.db.get(leagueId);
-    if (!league) {
-      throw new Error("League not found");
-    }
+  returns: v.array(playerSummaryValidator),
+  handler: async (ctx, { sessionToken, now, leagueId }) => {
+    await requireMasterAdminSession(ctx, sessionToken, now);
+    await requireLeague(ctx, leagueId);
 
     const [allPlayers, rosterEntries] = await Promise.all([
-      ctx.db.query("players").collect(),
+      ctx.db.query("players").take(MAX_ADMIN_LIST_ROWS),
       ctx.db
         .query("leagueRosters")
         .withIndex("by_league", (q) => q.eq("leagueId", leagueId))
@@ -98,7 +66,7 @@ export const listAvailablePlayersForLeague = query({
 
     return allPlayers
       .filter((player) => !rosterPlayerIds.has(player._id))
-      .map(playerSummary)
+      .map(toPlayerSummary)
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   },
 });
@@ -112,7 +80,7 @@ export const createPlayer = mutation({
     blurb: v.optional(v.string()),
   },
   handler: async (ctx, { sessionToken, displayName, nickname, avatar, blurb }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     const playerId = await ctx.db.insert("players", {
       displayName: normalizeRequired(displayName, "Display name"),
@@ -138,7 +106,7 @@ export const updatePlayer = mutation({
     ctx,
     { sessionToken, playerId, displayName, nickname, avatar, blurb },
   ) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     const player = await ctx.db.get(playerId);
     if (!player) {
@@ -162,7 +130,7 @@ export const removePlayer = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, { sessionToken, playerId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     const player = await ctx.db.get(playerId);
     if (!player) {
@@ -190,16 +158,11 @@ export const addPlayerToLeague = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, { sessionToken, leagueId, playerId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
-    const [league, player] = await Promise.all([
-      ctx.db.get(leagueId),
-      ctx.db.get(playerId),
-    ]);
+    await requireLeague(ctx, leagueId);
+    const player = await ctx.db.get(playerId);
 
-    if (!league) {
-      throw new Error("League not found");
-    }
     if (!player) {
       throw new Error("Player not found");
     }
@@ -227,7 +190,7 @@ export const removePlayerFromLeague = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, { sessionToken, leagueId, playerId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     const entry = await ctx.db
       .query("leagueRosters")

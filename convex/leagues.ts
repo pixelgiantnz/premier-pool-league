@@ -1,14 +1,21 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { leagueFormat } from "./schema";
+import { MAX_ADMIN_LIST_ROWS } from "./lib/limits";
+import { requireLeague } from "./lib/leagues";
 import { requireMasterAdminSession } from "./lib/sessions";
+import {
+  leagueSummaryValidator,
+  masterAdminQueryArgs,
+} from "./lib/validators";
 
 export const listLeagues = query({
-  args: { sessionToken: v.string() },
-  handler: async (ctx, { sessionToken }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+  args: masterAdminQueryArgs,
+  returns: v.array(leagueSummaryValidator),
+  handler: async (ctx, { sessionToken, now }) => {
+    await requireMasterAdminSession(ctx, sessionToken, now);
 
-    const leagues = await ctx.db.query("leagues").collect();
+    const leagues = await ctx.db.query("leagues").take(MAX_ADMIN_LIST_ROWS);
     return leagues
       .map((league) => ({
         _id: league._id,
@@ -22,16 +29,14 @@ export const listLeagues = query({
 
 export const getLeague = query({
   args: {
-    sessionToken: v.string(),
+    ...masterAdminQueryArgs,
     leagueId: v.id("leagues"),
   },
-  handler: async (ctx, { sessionToken, leagueId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+  returns: leagueSummaryValidator,
+  handler: async (ctx, { sessionToken, now, leagueId }) => {
+    await requireMasterAdminSession(ctx, sessionToken, now);
 
-    const league = await ctx.db.get(leagueId);
-    if (!league) {
-      throw new Error("League not found");
-    }
+    const league = await requireLeague(ctx, leagueId);
 
     return {
       _id: league._id,
@@ -49,7 +54,7 @@ export const createLeague = mutation({
     format: leagueFormat,
   },
   handler: async (ctx, { sessionToken, name, format }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     const trimmedName = name.trim();
     if (trimmedName.length < 1) {
@@ -72,12 +77,9 @@ export const deleteLeague = mutation({
     leagueId: v.id("leagues"),
   },
   handler: async (ctx, { sessionToken, leagueId }) => {
-    await requireMasterAdminSession(ctx, sessionToken);
+    await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
-    const league = await ctx.db.get(leagueId);
-    if (!league) {
-      throw new Error("League not found");
-    }
+    await requireLeague(ctx, leagueId);
 
     const rosterEntries = await ctx.db
       .query("leagueRosters")

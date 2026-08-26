@@ -6,21 +6,29 @@ import {
 
 type DbCtx = QueryCtx | MutationCtx;
 
-export async function getSessionByToken(ctx: DbCtx, token: string) {
+export async function getSessionByToken(
+  ctx: DbCtx,
+  token: string,
+  now: number,
+) {
   const session = await ctx.db
     .query("sessions")
     .withIndex("by_token", (q) => q.eq("token", token))
     .unique();
 
-  if (!session || session.expiresAt < Date.now()) {
+  if (!session || session.expiresAt < now) {
     return null;
   }
 
   return session;
 }
 
-export async function requireMasterAdminSession(ctx: DbCtx, token: string) {
-  const session = await getSessionByToken(ctx, token);
+export async function requireMasterAdminSession(
+  ctx: DbCtx,
+  token: string,
+  now: number,
+) {
+  const session = await getSessionByToken(ctx, token, now);
   if (
     !session ||
     !tierAllowsMasterAdminActions(session.tier as AccessTier)

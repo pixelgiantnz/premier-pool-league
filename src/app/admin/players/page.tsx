@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AuthForm, ActionButton, SubmitButton } from "@/components/action-form";
 import { Field } from "@/components/auth-panel";
 import { SessionBar } from "@/components/session-bar";
@@ -10,9 +9,8 @@ import {
 } from "@/app/actions/players";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { tierAllowsMasterAdminActions } from "../../../../lib/auth/tiers";
-import { getConvexClient } from "@/lib/convex-server";
-import { getCurrentAccessTier, getSessionToken } from "@/lib/session";
+import { requireMasterAdminPageAccess } from "@/lib/admin-session";
+import { getConvexClient, queryNow } from "@/lib/convex-server";
 
 export default async function AdminPlayersPage({
   searchParams,
@@ -24,15 +22,8 @@ export default async function AdminPlayersPage({
     removed?: string;
   }>;
 }) {
-  const tier = await getCurrentAccessTier();
+  const { tier, sessionToken } = await requireMasterAdminPageAccess();
   const params = await searchParams;
-
-  if (!tierAllowsMasterAdminActions(tier)) {
-    redirect("/admin/login");
-  }
-
-  const sessionToken = await getSessionToken();
-  if (!sessionToken) redirect("/admin/login");
 
   let players: Array<{
     _id: Id<"players">;
@@ -44,7 +35,10 @@ export default async function AdminPlayersPage({
 
   try {
     const client = getConvexClient();
-    players = await client.query(api.players.listAllPlayers, { sessionToken });
+    players = await client.query(api.players.listAllPlayers, {
+      sessionToken,
+      now: queryNow(),
+    });
   } catch {
     return (
       <>

@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import {
   AuthForm,
   SubmitButton,
@@ -9,20 +8,15 @@ import {
   updateKioskPasswordAction,
   updatePlatformPasswordAction,
 } from "@/app/actions/auth";
-import { getCurrentAccessTier } from "@/lib/session";
-import { tierAllowsMasterAdminActions } from "../../../../lib/auth/tiers";
+import { requireMasterAdminPageAccess } from "@/lib/admin-session";
 
 export default async function AdminSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ saved?: string; welcome?: string; reset?: string }>;
 }) {
-  const tier = await getCurrentAccessTier();
+  const { tier } = await requireMasterAdminPageAccess();
   const params = await searchParams;
-
-  if (!tierAllowsMasterAdminActions(tier)) {
-    redirect("/admin/login");
-  }
 
   return (
     <>

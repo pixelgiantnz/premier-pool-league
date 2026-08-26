@@ -14,9 +14,16 @@ export function getConvexClient() {
   return new ConvexHttpClient(url);
 }
 
+export function queryNow(): number {
+  return Date.now();
+}
+
 export async function fetchSessionTier(token: string): Promise<AccessTier> {
   const client = getConvexClient();
-  const session = await client.query(api.auth.getSessionByToken, { token });
+  const session = await client.query(api.auth.getSessionByToken, {
+    token,
+    now: queryNow(),
+  });
   if (!session) return "none";
   return session.tier;
 }

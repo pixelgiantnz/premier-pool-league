@@ -2,23 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { getConvexClient } from "@/lib/convex-server";
-import { getSessionToken } from "@/lib/session";
+import {
+  mutationErrorMessage,
+  requireFormId,
+  requireMasterAdminSessionToken,
+} from "@/lib/server-action-utils";
 import { isLeagueFormat } from "../../../lib/league/format";
 
-function mutationErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
-async function requireSessionToken(): Promise<string> {
-  const token = await getSessionToken();
-  if (!token) redirect("/admin/login");
-  return token;
-}
-
 export async function createLeagueAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
+  const sessionToken = await requireMasterAdminSessionToken();
   const name = String(formData.get("name") ?? "");
   const formatRaw = String(formData.get("format") ?? "");
 
@@ -43,8 +36,12 @@ export async function createLeagueAction(formData: FormData) {
 }
 
 export async function deleteLeagueAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
+  const sessionToken = await requireMasterAdminSessionToken();
+  const leagueId = requireFormId<"leagues">(
+    formData,
+    "leagueId",
+    "/admin/leagues?error=invalid-league",
+  );
 
   const client = getConvexClient();
   try {
@@ -62,9 +59,17 @@ export async function deleteLeagueAction(formData: FormData) {
 }
 
 export async function addPlayerToLeagueAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
-  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
+  const sessionToken = await requireMasterAdminSessionToken();
+  const leagueId = requireFormId<"leagues">(
+    formData,
+    "leagueId",
+    "/admin/leagues?error=invalid-league",
+  );
+  const playerId = requireFormId<"players">(
+    formData,
+    "playerId",
+    `/admin/leagues/${leagueId}?error=invalid-player`,
+  );
 
   const client = getConvexClient();
   try {
@@ -83,9 +88,17 @@ export async function addPlayerToLeagueAction(formData: FormData) {
 }
 
 export async function removePlayerFromLeagueAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
-  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
+  const sessionToken = await requireMasterAdminSessionToken();
+  const leagueId = requireFormId<"leagues">(
+    formData,
+    "leagueId",
+    "/admin/leagues?error=invalid-league",
+  );
+  const playerId = requireFormId<"players">(
+    formData,
+    "playerId",
+    `/admin/leagues/${leagueId}?error=invalid-player`,
+  );
 
   const client = getConvexClient();
   try {
