@@ -1,21 +1,5 @@
 import { ReactNode } from "react";
 
-export function AuthForm({
-  action,
-  children,
-  className = "space-y-4",
-}: {
-  action: (formData: FormData) => void | Promise<void>;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <form action={action} className={className} suppressHydrationWarning>
-      {children}
-    </form>
-  );
-}
-
 export function AuthPanel({
   title,
   subtitle,
@@ -45,12 +29,14 @@ export function Field({
   type = "text",
   autoComplete,
   defaultValue,
+  required = true,
 }: {
   label: string;
   name: string;
   type?: string;
   autoComplete?: string;
   defaultValue?: string;
+  required?: boolean;
 }) {
   return (
     <label className="block">
@@ -60,20 +46,9 @@ export function Field({
         type={type}
         autoComplete={autoComplete}
         defaultValue={defaultValue}
-        required
-        className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2"
+        required={required}
+        className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2 disabled:opacity-60"
       />
     </label>
-  );
-}
-
-export function SubmitButton({ label }: { label: string }) {
-  return (
-    <button
-      type="submit"
-      className="mt-6 w-full rounded-xl bg-[var(--accent)] px-4 py-3 font-semibold text-black transition hover:brightness-110"
-    >
-      {label}
-    </button>
   );
 }

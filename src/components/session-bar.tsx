@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { accessTierLabel } from "../../lib/auth/tiers";
 import type { AccessTier } from "../../lib/auth/tiers";
-import { signOutAction } from "@/app/actions/auth";
 import {
   tierAllowsKioskRecord,
   tierAllowsMasterAdminActions,
 } from "../../lib/auth/tiers";
+import { SignOutButton } from "@/components/admin-buttons";
 
 export function SessionBar({ tier }: { tier: AccessTier }) {
   return (
@@ -40,6 +40,12 @@ export function SessionBar({ tier }: { tier: AccessTier }) {
                 Leagues
               </Link>
               <Link
+                href="/admin/players"
+                className="text-white/80 hover:text-white"
+              >
+                Players
+              </Link>
+              <Link
                 href="/admin/settings"
                 className="text-white/80 hover:text-white"
               >
@@ -57,14 +63,7 @@ export function SessionBar({ tier }: { tier: AccessTier }) {
               Kiosk ready
             </span>
           )}
-          <form action={signOutAction} suppressHydrationWarning>
-            <button
-              type="submit"
-              className="rounded-full border border-white/15 px-3 py-1 text-white/70 hover:text-white"
-            >
-              Sign out
-            </button>
-          </form>
+          <SignOutButton />
         </nav>
       </div>
     </header>

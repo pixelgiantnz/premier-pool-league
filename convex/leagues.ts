@@ -65,3 +65,30 @@ export const createLeague = mutation({
     return { leagueId };
   },
 });
+
+export const deleteLeague = mutation({
+  args: {
+    sessionToken: v.string(),
+    leagueId: v.id("leagues"),
+  },
+  handler: async (ctx, { sessionToken, leagueId }) => {
+    await requireMasterAdminSession(ctx, sessionToken);
+
+    const league = await ctx.db.get(leagueId);
+    if (!league) {
+      throw new Error("League not found");
+    }
+
+    const rosterEntries = await ctx.db
+      .query("leagueRosters")
+      .withIndex("by_league", (q) => q.eq("leagueId", leagueId))
+      .collect();
+
+    for (const entry of rosterEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
+    await ctx.db.delete(leagueId);
+    return { ok: true as const };
+  },
+});

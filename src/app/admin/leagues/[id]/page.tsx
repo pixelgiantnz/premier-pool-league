@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  AuthForm,
-  Field,
-  SubmitButton,
-} from "@/components/auth-panel";
+import { AuthForm, ActionButton, SubmitButton } from "@/components/action-form";
+import { Field } from "@/components/auth-panel";
 import { SessionBar } from "@/components/session-bar";
 import {
-  createPlayerAction,
-  removePlayerAction,
-  updatePlayerAction,
+  addPlayerToLeagueAction,
+  removePlayerFromLeagueAction,
 } from "@/app/actions/leagues";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -26,7 +22,6 @@ export default async function AdminLeagueRosterPage({
   searchParams: Promise<{
     error?: string;
     added?: string;
-    saved?: string;
     removed?: string;
   }>;
 }) {
@@ -49,7 +44,15 @@ export default async function AdminLeagueRosterPage({
     format: "singleRoundRobin" | "doubleRoundRobin";
     status: "active" | "past";
   };
-  let players: Array<{
+  let roster: Array<{
+    rosterId: Id<"leagueRosters">;
+    _id: Id<"players">;
+    displayName: string;
+    nickname: string;
+    avatar: string;
+    blurb?: string;
+  }>;
+  let availablePlayers: Array<{
     _id: Id<"players">;
     displayName: string;
     nickname: string;
@@ -58,9 +61,13 @@ export default async function AdminLeagueRosterPage({
   }>;
 
   try {
-    [league, players] = await Promise.all([
+    [league, roster, availablePlayers] = await Promise.all([
       client.query(api.leagues.getLeague, { sessionToken, leagueId }),
-      client.query(api.players.listPlayersByLeague, { sessionToken, leagueId }),
+      client.query(api.players.listRosterByLeague, { sessionToken, leagueId }),
+      client.query(api.players.listAvailablePlayersForLeague, {
+        sessionToken,
+        leagueId,
+      }),
     ]);
   } catch {
     redirect("/admin/leagues");
@@ -93,105 +100,92 @@ export default async function AdminLeagueRosterPage({
             Player added to the roster.
           </p>
         )}
-        {queryParams.saved && (
-          <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
-            Player updated.
-          </p>
-        )}
         {queryParams.removed && (
           <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
-            Player removed from the roster.
+            Player removed from the roster (still in the Platform pool).
           </p>
         )}
 
         <section className="mt-8 rounded-3xl border border-white/10 bg-[var(--surface)] p-6">
-          <h2 className="text-lg font-semibold">Add Player</h2>
-          <AuthForm action={createPlayerAction} className="mt-6 space-y-4">
-            <input type="hidden" name="leagueId" value={leagueId} />
-            <Field label="Display name" name="displayName" autoComplete="off" />
-            <Field label="Nickname" name="nickname" autoComplete="off" />
-            <Field
-              label="Avatar"
-              name="avatar"
-              autoComplete="off"
-              defaultValue="🎱"
-            />
-            <Field label="Blurb (optional)" name="blurb" autoComplete="off" />
-            <SubmitButton label="Add Player" />
-          </AuthForm>
+          <h2 className="text-lg font-semibold">Add from Player pool</h2>
+          <p className="mt-2 text-sm text-white/60">
+            Choose a Player from the Platform pool.{" "}
+            <Link href="/admin/players" className="text-[var(--accent)] hover:underline">
+              Manage the pool
+            </Link>
+          </p>
+          {availablePlayers.length === 0 ? (
+            <p className="mt-4 text-sm text-white/50">
+              No available Players — create Players in the pool or all are
+              already on this roster.
+            </p>
+          ) : (
+            <AuthForm
+              action={addPlayerToLeagueAction}
+              className="mt-6 flex flex-wrap items-end gap-3"
+            >
+              <input type="hidden" name="leagueId" value={leagueId} />
+              <label className="min-w-[16rem] flex-1">
+                <span className="mb-2 block text-sm text-white/70">Player</span>
+                <select
+                  name="playerId"
+                  required
+                  className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2 disabled:opacity-60"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select a Player…
+                  </option>
+                  {availablePlayers.map((player) => (
+                    <option key={player._id} value={player._id}>
+                      {player.displayName} ({player.nickname})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SubmitButton
+                label="Add to roster"
+                pendingLabel="Adding…"
+                className="mt-0 bg-[var(--accent)] px-5 py-3 text-black hover:brightness-110"
+              />
+            </AuthForm>
+          )}
         </section>
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold">Roster</h2>
-          {players.length === 0 ? (
+          {roster.length === 0 ? (
             <p className="mt-3 text-sm text-white/50">
               No Players on this League yet.
             </p>
           ) : (
-            <ul className="mt-4 space-y-4">
-              {players.map((player) => (
+            <ul className="mt-4 space-y-3">
+              {roster.map((player) => (
                 <li
                   key={player._id}
-                  className="rounded-3xl border border-white/10 bg-[var(--surface)] p-6"
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[var(--surface)] px-5 py-4"
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex min-w-0 items-start gap-4">
                     <span className="text-3xl" aria-hidden>
                       {player.avatar}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <AuthForm
-                        action={updatePlayerAction}
-                        className="space-y-3"
-                      >
-                        <input type="hidden" name="leagueId" value={leagueId} />
-                        <input
-                          type="hidden"
-                          name="playerId"
-                          value={player._id}
-                        />
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <Field
-                            label="Display name"
-                            name="displayName"
-                            defaultValue={player.displayName}
-                          />
-                          <Field
-                            label="Nickname"
-                            name="nickname"
-                            defaultValue={player.nickname}
-                          />
-                          <Field
-                            label="Avatar"
-                            name="avatar"
-                            defaultValue={player.avatar}
-                          />
-                          <Field
-                            label="Blurb (optional)"
-                            name="blurb"
-                            defaultValue={player.blurb ?? ""}
-                          />
-                        </div>
-                        <SubmitButton label="Save Player" />
-                      </AuthForm>
-                      <AuthForm
-                        action={removePlayerAction}
-                        className="mt-3"
-                      >
-                        <input type="hidden" name="leagueId" value={leagueId} />
-                        <input
-                          type="hidden"
-                          name="playerId"
-                          value={player._id}
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-xl border border-red-400/30 px-4 py-2 text-sm text-red-200 hover:bg-red-400/10"
-                        >
-                          Remove Player
-                        </button>
-                      </AuthForm>
+                    <div>
+                      <p className="font-semibold">{player.displayName}</p>
+                      <p className="text-sm text-white/55">{player.nickname}</p>
+                      {player.blurb && (
+                        <p className="mt-1 text-sm text-white/45">{player.blurb}</p>
+                      )}
                     </div>
                   </div>
+                  <AuthForm action={removePlayerFromLeagueAction}>
+                    <input type="hidden" name="leagueId" value={leagueId} />
+                    <input type="hidden" name="playerId" value={player._id} />
+                    <ActionButton
+                      label="Remove from roster"
+                      pendingLabel="Removing…"
+                      variant="danger"
+                    />
+                  </AuthForm>
                 </li>
               ))}
             </ul>

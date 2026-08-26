@@ -33,7 +33,7 @@ npm run dev
 
 To sign in again later, use `/admin/login` with your Master Admin email and password.
 
-Manage Leagues and Player rosters at `/admin/leagues` (Master Admin session required).
+Manage Leagues and Player rosters at `/admin/leagues` and the Platform Player pool at `/admin/players` (Master Admin session required).
 
 ### Master Admin password reset
 

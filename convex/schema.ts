@@ -41,10 +41,17 @@ export default defineSchema({
   }).index("by_status", ["status"]),
 
   players: defineTable({
-    leagueId: v.id("leagues"),
     displayName: v.string(),
     nickname: v.string(),
     avatar: v.string(),
     blurb: v.optional(v.string()),
-  }).index("by_league", ["leagueId"]),
+  }),
+
+  leagueRosters: defineTable({
+    leagueId: v.id("leagues"),
+    playerId: v.id("players"),
+  })
+    .index("by_league", ["leagueId"])
+    .index("by_player", ["playerId"])
+    .index("by_league_and_player", ["leagueId", "playerId"]),
 });

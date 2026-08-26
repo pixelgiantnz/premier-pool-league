@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  AuthForm,
-  Field,
-  SubmitButton,
-} from "@/components/auth-panel";
+import { AuthForm, ActionButton, SubmitButton } from "@/components/action-form";
+import { Field } from "@/components/auth-panel";
+import { DeleteLeagueForm } from "@/components/admin-buttons";
 import { SessionBar } from "@/components/session-bar";
-import { createLeagueAction } from "@/app/actions/leagues";
+import {
+  createLeagueAction,
+  deleteLeagueAction,
+} from "@/app/actions/leagues";
 import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { leagueFormatLabel } from "../../../../lib/league/format";
 import { tierAllowsMasterAdminActions } from "../../../../lib/auth/tiers";
 import { getConvexClient } from "@/lib/convex-server";
@@ -16,7 +18,7 @@ import { getCurrentAccessTier, getSessionToken } from "@/lib/session";
 export default async function AdminLeaguesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; created?: string }>;
+  searchParams: Promise<{ error?: string; created?: string; deleted?: string }>;
 }) {
   const tier = await getCurrentAccessTier();
   const params = await searchParams;
@@ -29,7 +31,7 @@ export default async function AdminLeaguesPage({
   if (!sessionToken) redirect("/admin/login");
 
   let leagues: Array<{
-    _id: string;
+    _id: Id<"leagues">;
     name: string;
     format: "singleRoundRobin" | "doubleRoundRobin";
     status: "active" | "past";
@@ -65,16 +67,24 @@ export default async function AdminLeaguesPage({
             </p>
             <h1 className="mt-2 text-3xl font-semibold">Leagues</h1>
             <p className="mt-2 max-w-2xl text-white/65">
-              Create Leagues and manage Player rosters. No fixture schedule is
-              generated — Players choose opponents on the Kiosk (ADR-0001).
+              Create Leagues and add Players from the Platform pool. No fixture
+              schedule is generated (ADR-0001).
             </p>
           </div>
-          <Link
-            href="/admin/settings"
-            className="text-sm text-[var(--accent)] hover:underline"
-          >
-            Platform settings
-          </Link>
+          <div className="flex gap-4 text-sm">
+            <Link
+              href="/admin/players"
+              className="text-[var(--accent)] hover:underline"
+            >
+              Player pool
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="text-[var(--accent)] hover:underline"
+            >
+              Settings
+            </Link>
+          </div>
         </div>
 
         {params.error && (
@@ -84,7 +94,12 @@ export default async function AdminLeaguesPage({
         )}
         {params.created && (
           <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
-            League created. Open it below to add Players.
+            League created. Open it below to add Players from the pool.
+          </p>
+        )}
+        {params.deleted && (
+          <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
+            League deleted.
           </p>
         )}
 
@@ -99,7 +114,7 @@ export default async function AdminLeaguesPage({
               <select
                 name="format"
                 required
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2"
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none ring-[var(--accent)] focus:ring-2 disabled:opacity-60"
                 defaultValue="singleRoundRobin"
               >
                 <option value="singleRoundRobin">
@@ -110,7 +125,7 @@ export default async function AdminLeaguesPage({
                 </option>
               </select>
             </label>
-            <SubmitButton label="Create League" />
+            <SubmitButton label="Create League" pendingLabel="Creating…" />
           </AuthForm>
         </section>
 
@@ -123,21 +138,33 @@ export default async function AdminLeaguesPage({
           ) : (
             <ul className="mt-4 space-y-3">
               {activeLeagues.map((league) => (
-                <li key={league._id}>
-                  <Link
-                    href={`/admin/leagues/${league._id}`}
-                    className="flex items-center justify-between rounded-2xl border border-white/10 bg-[var(--surface)] px-5 py-4 transition hover:border-[var(--accent)]/40"
-                  >
-                    <div>
+                <li
+                  key={league._id}
+                  className="rounded-2xl border border-white/10 bg-[var(--surface)] px-5 py-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Link
+                      href={`/admin/leagues/${league._id}`}
+                      className="min-w-0 flex-1 transition hover:opacity-90"
+                    >
                       <p className="font-semibold">{league.name}</p>
                       <p className="mt-1 text-sm text-white/55">
                         {leagueFormatLabel(league.format)}
                       </p>
+                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/leagues/${league._id}`}
+                        className="text-sm text-[var(--accent)] hover:underline"
+                      >
+                        Manage roster →
+                      </Link>
+                      <DeleteLeagueForm
+                        action={deleteLeagueAction}
+                        leagueId={league._id}
+                      />
                     </div>
-                    <span className="text-sm text-[var(--accent)]">
-                      Manage roster →
-                    </span>
-                  </Link>
+                  </div>
                 </li>
               ))}
             </ul>

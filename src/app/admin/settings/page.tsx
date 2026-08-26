@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import {
   AuthForm,
-  Field,
   SubmitButton,
-} from "@/components/auth-panel";
+} from "@/components/action-form";
+import { Field } from "@/components/auth-panel";
 import { SessionBar } from "@/components/session-bar";
 import {
   updateKioskPasswordAction,

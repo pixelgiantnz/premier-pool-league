@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import {
   AuthForm,
+  SubmitButton,
+} from "@/components/action-form";
+import {
   AuthPanel,
   Field,
-  SubmitButton,
 } from "@/components/auth-panel";
 import { bootstrapMasterAdminAction } from "@/app/actions/auth";
 import { hasMasterAdminAccount } from "@/lib/convex-server";

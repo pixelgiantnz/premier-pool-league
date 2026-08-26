@@ -42,75 +42,61 @@ export async function createLeagueAction(formData: FormData) {
   redirect("/admin/leagues?created=1");
 }
 
-export async function createPlayerAction(formData: FormData) {
+export async function deleteLeagueAction(formData: FormData) {
   const sessionToken = await requireSessionToken();
   const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
-  const displayName = String(formData.get("displayName") ?? "");
-  const nickname = String(formData.get("nickname") ?? "");
-  const avatar = String(formData.get("avatar") ?? "");
-  const blurb = String(formData.get("blurb") ?? "");
 
   const client = getConvexClient();
   try {
-    await client.mutation(api.players.createPlayer, {
+    await client.mutation(api.leagues.deleteLeague, {
       sessionToken,
       leagueId,
-      displayName,
-      nickname,
-      avatar,
-      blurb: blurb.trim() || undefined,
     });
   } catch (error) {
     redirect(
-      `/admin/leagues/${leagueId}?error=${encodeURIComponent(mutationErrorMessage(error, "Could not add Player"))}`,
+      `/admin/leagues?error=${encodeURIComponent(mutationErrorMessage(error, "Could not delete League"))}`,
+    );
+  }
+
+  redirect("/admin/leagues?deleted=1");
+}
+
+export async function addPlayerToLeagueAction(formData: FormData) {
+  const sessionToken = await requireSessionToken();
+  const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
+  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
+
+  const client = getConvexClient();
+  try {
+    await client.mutation(api.players.addPlayerToLeague, {
+      sessionToken,
+      leagueId,
+      playerId,
+    });
+  } catch (error) {
+    redirect(
+      `/admin/leagues/${leagueId}?error=${encodeURIComponent(mutationErrorMessage(error, "Could not add Player to roster"))}`,
     );
   }
 
   redirect(`/admin/leagues/${leagueId}?added=1`);
 }
 
-export async function updatePlayerAction(formData: FormData) {
-  const sessionToken = await requireSessionToken();
-  const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
-  const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
-  const displayName = String(formData.get("displayName") ?? "");
-  const nickname = String(formData.get("nickname") ?? "");
-  const avatar = String(formData.get("avatar") ?? "");
-  const blurb = String(formData.get("blurb") ?? "");
-
-  const client = getConvexClient();
-  try {
-    await client.mutation(api.players.updatePlayer, {
-      sessionToken,
-      playerId,
-      displayName,
-      nickname,
-      avatar,
-      blurb: blurb.trim() || undefined,
-    });
-  } catch (error) {
-    redirect(
-      `/admin/leagues/${leagueId}?error=${encodeURIComponent(mutationErrorMessage(error, "Could not update Player"))}`,
-    );
-  }
-
-  redirect(`/admin/leagues/${leagueId}?saved=1`);
-}
-
-export async function removePlayerAction(formData: FormData) {
+export async function removePlayerFromLeagueAction(formData: FormData) {
   const sessionToken = await requireSessionToken();
   const leagueId = String(formData.get("leagueId") ?? "") as Id<"leagues">;
   const playerId = String(formData.get("playerId") ?? "") as Id<"players">;
 
   const client = getConvexClient();
   try {
-    await client.mutation(api.players.removePlayer, {
+    await client.mutation(api.players.removePlayerFromLeague, {
       sessionToken,
+      leagueId,
       playerId,
     });
   } catch (error) {
     redirect(
-      `/admin/leagues/${leagueId}?error=${encodeURIComponent(mutationErrorMessage(error, "Could not remove Player"))}`,
+      `/admin/leagues/${leagueId}?error=${encodeURIComponent(mutationErrorMessage(error, "Could not remove Player from roster"))}`,
     );
   }
 

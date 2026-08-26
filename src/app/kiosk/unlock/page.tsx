@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import {
   AuthForm,
+  SubmitButton,
+} from "@/components/action-form";
+import {
   AuthPanel,
   Field,
-  SubmitButton,
 } from "@/components/auth-panel";
 import { upgradeToKioskAction } from "@/app/actions/auth";
 import { getCurrentAccessTier } from "@/lib/session";
