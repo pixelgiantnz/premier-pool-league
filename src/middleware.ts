@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   "/gate",
   "/admin/login",
   "/admin/register",
+  "/admin/reset-password",
 ];
 
 export function middleware(request: NextRequest) {

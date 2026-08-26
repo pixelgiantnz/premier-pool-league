@@ -14,8 +14,8 @@ export default defineSchema({
   }).index("by_email", ["email"]),
 
   platformSettings: defineTable({
-    platformPasswordHash: v.string(),
-    kioskPasswordHash: v.string(),
+    platformPasswordHash: v.optional(v.string()),
+    kioskPasswordHash: v.optional(v.string()),
   }),
 
   sessions: defineTable({

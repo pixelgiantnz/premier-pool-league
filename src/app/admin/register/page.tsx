@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import {
+  AuthForm,
   AuthPanel,
   Field,
   SubmitButton,
@@ -7,7 +8,13 @@ import {
 import { bootstrapMasterAdminAction } from "@/app/actions/auth";
 import { hasMasterAdminAccount } from "@/lib/convex-server";
 
-export default async function AdminRegisterPage() {
+export default async function AdminRegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+
   try {
     const hasAdmin = await hasMasterAdminAccount();
     if (hasAdmin) {
@@ -29,18 +36,23 @@ export default async function AdminRegisterPage() {
   return (
     <AuthPanel
       title="Create Master Admin"
-      subtitle="First-time setup for the Platform. You will configure Platform and Kiosk passwords next."
+      subtitle="This password is for Master Admin sign-in only. You will set separate Platform and Kiosk passwords in settings next."
     >
-      <form action={bootstrapMasterAdminAction} className="space-y-4">
+      {params.error && (
+        <p className="mb-4 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+          {params.error}
+        </p>
+      )}
+      <AuthForm action={bootstrapMasterAdminAction}>
         <Field label="Email" name="email" type="email" autoComplete="email" />
         <Field
-          label="Password"
+          label="Master Admin password"
           name="password"
           type="password"
           autoComplete="new-password"
         />
         <SubmitButton label="Create Master Admin" />
-      </form>
+      </AuthForm>
     </AuthPanel>
   );
 }

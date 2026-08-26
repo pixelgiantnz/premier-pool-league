@@ -46,7 +46,7 @@ export function SessionBar({ tier }: { tier: AccessTier }) {
               Kiosk ready
             </span>
           )}
-          <form action={signOutAction}>
+          <form action={signOutAction} suppressHydrationWarning>
             <button
               type="submit"
               className="rounded-full border border-white/15 px-3 py-1 text-white/70 hover:text-white"

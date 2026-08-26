@@ -23,32 +23,90 @@ async function clearSessionCookie() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
+function mutationErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export async function bootstrapMasterAdminAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const client = getConvexClient();
-  await client.mutation(api.auth.bootstrapMasterAdmin, { email, password });
-  redirect("/admin/login?registered=1");
+
+  let result: { token: string };
+  try {
+    result = await client.mutation(api.auth.bootstrapMasterAdmin, {
+      email,
+      password,
+    });
+  } catch (error) {
+    redirect(
+      `/admin/register?error=${encodeURIComponent(mutationErrorMessage(error, "Registration failed"))}`,
+    );
+  }
+
+  await setSessionCookie(result.token);
+  redirect("/admin/settings?welcome=1");
 }
 
 export async function signInMasterAdminAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const client = getConvexClient();
-  const result = await client.mutation(api.auth.signInMasterAdmin, {
-    email,
-    password,
-  });
+
+  let result: { token: string };
+  try {
+    result = await client.mutation(api.auth.signInMasterAdmin, {
+      email,
+      password,
+    });
+  } catch {
+    redirect(
+      `/admin/login?error=invalid&email=${encodeURIComponent(email.trim().toLowerCase())}`,
+    );
+  }
+
   await setSessionCookie(result.token);
   redirect("/admin/settings");
+}
+
+export async function resetMasterAdminPasswordAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const resetSecret = String(formData.get("resetSecret") ?? "");
+  const client = getConvexClient();
+
+  let result: { token: string };
+  try {
+    result = await client.mutation(api.auth.resetMasterAdminPassword, {
+      email,
+      newPassword,
+      resetSecret,
+    });
+  } catch (error) {
+    redirect(
+      `/admin/reset-password?error=${encodeURIComponent(mutationErrorMessage(error, "Password reset failed"))}&email=${encodeURIComponent(email.trim().toLowerCase())}`,
+    );
+  }
+
+  await setSessionCookie(result.token);
+  redirect("/admin/settings?reset=1");
 }
 
 export async function signInWithPlatformPasswordAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const client = getConvexClient();
-  const result = await client.mutation(api.auth.signInWithPlatformPassword, {
-    password,
-  });
+
+  let result: { token: string };
+  try {
+    result = await client.mutation(api.auth.signInWithPlatformPassword, {
+      password,
+    });
+  } catch (error) {
+    redirect(
+      `/gate?error=${encodeURIComponent(mutationErrorMessage(error, "Invalid Platform password"))}`,
+    );
+  }
+
   await setSessionCookie(result.token);
   redirect("/");
 }
@@ -60,10 +118,18 @@ export async function upgradeToKioskAction(formData: FormData) {
 
   const kioskPassword = String(formData.get("kioskPassword") ?? "");
   const client = getConvexClient();
-  await client.mutation(api.auth.upgradeSessionToKiosk, {
-    sessionToken: token,
-    kioskPassword,
-  });
+
+  try {
+    await client.mutation(api.auth.upgradeSessionToKiosk, {
+      sessionToken: token,
+      kioskPassword,
+    });
+  } catch (error) {
+    redirect(
+      `/kiosk/unlock?error=${encodeURIComponent(mutationErrorMessage(error, "Invalid Kiosk password"))}`,
+    );
+  }
+
   redirect("/");
 }
 

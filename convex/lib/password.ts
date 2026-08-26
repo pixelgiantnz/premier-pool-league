@@ -2,15 +2,13 @@ import bcrypt from "bcryptjs";
 
 const ROUNDS = 12;
 
-export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, ROUNDS);
+/** Sync only — Convex mutations cannot use bcrypt's async API (setTimeout). */
+export function hashPassword(plain: string): string {
+  return bcrypt.hashSync(plain, ROUNDS);
 }
 
-export async function verifyPassword(
-  plain: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(plain, hash);
+export function verifyPassword(plain: string, hash: string): boolean {
+  return bcrypt.compareSync(plain, hash);
 }
 
 export function createSessionToken(): string {

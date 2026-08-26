@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import {
+  AuthForm,
   Field,
   SubmitButton,
 } from "@/components/auth-panel";
@@ -14,7 +15,7 @@ import { tierAllowsMasterAdminActions } from "../../../../lib/auth/tiers";
 export default async function AdminSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; welcome?: string; reset?: string }>;
 }) {
   const tier = await getCurrentAccessTier();
   const params = await searchParams;
@@ -30,9 +31,21 @@ export default async function AdminSettingsPage({
         <h1 className="text-3xl font-semibold">Master Admin settings</h1>
         <p className="mt-2 text-white/65">
           Configure the Platform password (Viewer access) and Kiosk password
-          (interactive Shot recording).
+          (interactive Shot recording). Set both before using the Platform gate.
         </p>
 
+        {params.welcome === "1" && (
+          <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
+            Master Admin account created. Set Platform and Kiosk passwords
+            below.
+          </p>
+        )}
+        {params.reset === "1" && (
+          <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
+            Master Admin password reset. Your Platform and Kiosk passwords are
+            unchanged.
+          </p>
+        )}
         {params.saved === "platform" && (
           <p className="mt-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
             Platform password updated.
@@ -50,7 +63,10 @@ export default async function AdminSettingsPage({
             <p className="mt-2 text-sm text-white/60">
               Grants Viewer access across the Platform after sign-in at the gate.
             </p>
-            <form action={updatePlatformPasswordAction} className="mt-6 space-y-4">
+            <AuthForm
+              action={updatePlatformPasswordAction}
+              className="mt-6 space-y-4"
+            >
               <Field
                 label="New Platform password"
                 name="platformPassword"
@@ -58,7 +74,7 @@ export default async function AdminSettingsPage({
                 autoComplete="new-password"
               />
               <SubmitButton label="Save Platform password" />
-            </form>
+            </AuthForm>
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-[var(--surface)] p-6">
@@ -66,7 +82,10 @@ export default async function AdminSettingsPage({
             <p className="mt-2 text-sm text-white/60">
               Unlocks Kiosk mode on a Viewer session so Shots can be recorded.
             </p>
-            <form action={updateKioskPasswordAction} className="mt-6 space-y-4">
+            <AuthForm
+              action={updateKioskPasswordAction}
+              className="mt-6 space-y-4"
+            >
               <Field
                 label="New Kiosk password"
                 name="kioskPassword"
@@ -74,7 +93,7 @@ export default async function AdminSettingsPage({
                 autoComplete="new-password"
               />
               <SubmitButton label="Save Kiosk password" />
-            </form>
+            </AuthForm>
           </section>
         </div>
       </main>

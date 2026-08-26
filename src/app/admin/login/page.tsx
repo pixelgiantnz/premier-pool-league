@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  AuthForm,
   AuthPanel,
   Field,
   SubmitButton,
@@ -11,7 +12,11 @@ import { hasMasterAdminAccount } from "@/lib/convex-server";
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; setup?: string }>;
+  searchParams: Promise<{
+    setup?: string;
+    error?: string;
+    email?: string;
+  }>;
 }) {
   const params = await searchParams;
   let hasAdmin = true;
@@ -35,14 +40,17 @@ export default async function AdminLoginPage({
     redirect("/admin/register");
   }
 
+  const emailDefault = params.email ?? undefined;
+
   return (
     <AuthPanel
       title="Master Admin sign in"
-      subtitle="Manage Leagues, Players, Platform password, and Kiosk password."
+      subtitle="Use the email and password from when you created the Master Admin account — not the Platform password from the gate."
     >
-      {params.registered && (
-        <p className="mb-4 rounded-xl bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
-          Master Admin account created. Sign in below.
+      {params.error === "invalid" && (
+        <p className="mb-4 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+          Invalid email or password. Use your Master Admin registration
+          credentials, not the Platform password you set in settings.
         </p>
       )}
       {params.setup === "passwords" && (
@@ -50,22 +58,30 @@ export default async function AdminLoginPage({
           Configure Platform and Kiosk passwords after sign-in.
         </p>
       )}
-      <form action={signInMasterAdminAction} className="space-y-4">
+      <AuthForm action={signInMasterAdminAction}>
         <Field
           label="Email"
           name="email"
           type="email"
           autoComplete="email"
+          defaultValue={emailDefault}
         />
         <Field
-          label="Password"
+          label="Master Admin password"
           name="password"
           type="password"
           autoComplete="current-password"
         />
         <SubmitButton label="Sign in" />
-      </form>
+      </AuthForm>
       <p className="mt-6 text-center text-sm text-white/50">
+        <Link
+          href={`/admin/reset-password${emailDefault ? `?email=${encodeURIComponent(emailDefault)}` : ""}`}
+          className="text-[var(--accent)] hover:underline"
+        >
+          Forgot Master Admin password? Reset it
+        </Link>
+        <span className="mx-2 text-white/30">·</span>
         <Link href="/gate" className="text-[var(--accent)] hover:underline">
           Back to Platform password gate
         </Link>
