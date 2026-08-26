@@ -7,6 +7,13 @@ export const sessionTier = v.union(
   v.literal("masterAdmin"),
 );
 
+export const leagueFormat = v.union(
+  v.literal("singleRoundRobin"),
+  v.literal("doubleRoundRobin"),
+);
+
+export const leagueStatus = v.union(v.literal("active"), v.literal("past"));
+
 export default defineSchema({
   masterAdmins: defineTable({
     email: v.string(),
@@ -26,4 +33,18 @@ export default defineSchema({
   })
     .index("by_token", ["token"])
     .index("by_expiresAt", ["expiresAt"]),
+
+  leagues: defineTable({
+    name: v.string(),
+    format: leagueFormat,
+    status: leagueStatus,
+  }).index("by_status", ["status"]),
+
+  players: defineTable({
+    leagueId: v.id("leagues"),
+    displayName: v.string(),
+    nickname: v.string(),
+    avatar: v.string(),
+    blurb: v.optional(v.string()),
+  }).index("by_league", ["leagueId"]),
 });

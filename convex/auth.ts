@@ -12,35 +12,15 @@ import {
   sessionExpiresAt,
   verifyPassword,
 } from "./lib/password";
+import {
+  getSessionByToken as lookupSessionByToken,
+  requireMasterAdminSession,
+} from "./lib/sessions";
 
 type DbCtx = QueryCtx | MutationCtx;
 
 async function getSettings(ctx: DbCtx) {
   return ctx.db.query("platformSettings").first();
-}
-
-async function getSessionByTokenInternal(ctx: DbCtx, token: string) {
-  const session = await ctx.db
-    .query("sessions")
-    .withIndex("by_token", (q) => q.eq("token", token))
-    .unique();
-
-  if (!session || session.expiresAt < Date.now()) {
-    return null;
-  }
-
-  return session;
-}
-
-async function requireMasterAdminSession(ctx: DbCtx, token: string) {
-  const session = await getSessionByTokenInternal(ctx, token);
-  if (
-    !session ||
-    !tierAllowsMasterAdminActions(session.tier as AccessTier)
-  ) {
-    throw new Error("Master Admin session required");
-  }
-  return session;
 }
 
 export const hasMasterAdmin = query({
@@ -65,7 +45,7 @@ export const passwordsConfigured = query({
 export const getSessionByToken = query({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
-    const session = await getSessionByTokenInternal(ctx, token);
+    const session = await lookupSessionByToken(ctx, token);
     if (!session) return null;
     return {
       tier: session.tier,
@@ -218,7 +198,7 @@ export const upgradeSessionToKiosk = mutation({
     kioskPassword: v.string(),
   },
   handler: async (ctx, { sessionToken, kioskPassword }) => {
-    const session = await getSessionByTokenInternal(ctx, sessionToken);
+    const session = await lookupSessionByToken(ctx, sessionToken);
     if (!session) {
       throw new Error("Session expired or invalid");
     }

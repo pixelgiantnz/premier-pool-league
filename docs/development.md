@@ -33,6 +33,8 @@ npm run dev
 
 To sign in again later, use `/admin/login` with your Master Admin email and password.
 
+Manage Leagues and Player rosters at `/admin/leagues` (Master Admin session required).
+
 ### Master Admin password reset
 
 If you cannot sign in, set a reset secret on your Convex deployment (once):

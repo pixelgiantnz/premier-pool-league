@@ -9,7 +9,10 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as leagues from "../leagues.js";
 import type * as lib_password from "../lib/password.js";
+import type * as lib_sessions from "../lib/sessions.js";
+import type * as players from "../players.js";
 
 import type {
   ApiFromModules,
@@ -19,7 +22,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  leagues: typeof leagues;
   "lib/password": typeof lib_password;
+  "lib/sessions": typeof lib_sessions;
+  players: typeof players;
 }>;
 
 /**

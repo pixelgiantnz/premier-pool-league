@@ -32,9 +32,20 @@ export function SessionBar({ tier }: { tier: AccessTier }) {
             </Link>
           )}
           {tierAllowsMasterAdminActions(tier) && (
-            <Link href="/admin/settings" className="text-white/80 hover:text-white">
-              Master Admin
-            </Link>
+            <>
+              <Link
+                href="/admin/leagues"
+                className="text-white/80 hover:text-white"
+              >
+                Leagues
+              </Link>
+              <Link
+                href="/admin/settings"
+                className="text-white/80 hover:text-white"
+              >
+                Settings
+              </Link>
+            </>
           )}
           {!tierAllowsMasterAdminActions(tier) && (
             <Link href="/admin/login" className="text-white/50 hover:text-white">
