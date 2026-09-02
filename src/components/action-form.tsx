@@ -46,6 +46,7 @@ export function SubmitButton({
       type="submit"
       disabled={pending}
       aria-busy={pending}
+      suppressHydrationWarning
       className={`${baseButtonClass} ${className}`}
     >
       {pending ? (pendingLabel ?? `${label}…`) : label}
@@ -75,6 +76,7 @@ export function ActionButton({
       type="submit"
       disabled={pending}
       aria-busy={pending}
+      suppressHydrationWarning
       className={`${baseButtonClass} ${variantClass}`}
     >
       {pending ? (pendingLabel ?? `${label}…`) : label}
