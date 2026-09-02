@@ -1,5 +1,15 @@
 import type { Doc, Id } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+
+type DbCtx = QueryCtx | MutationCtx;
+
+export async function requirePlayer(ctx: DbCtx, playerId: Id<"players">) {
+  const player = await ctx.db.get(playerId);
+  if (!player) {
+    throw new Error("Player not found");
+  }
+  return player;
+}
 
 export function toPlayerSummary(player: Doc<"players">) {
   return {

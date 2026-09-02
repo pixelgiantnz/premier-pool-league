@@ -2,7 +2,11 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { MAX_ADMIN_LIST_ROWS } from "./lib/limits";
 import { requireLeague } from "./lib/leagues";
-import { loadRosterPlayers, toPlayerSummary } from "./lib/players";
+import {
+  loadRosterPlayers,
+  requirePlayer,
+  toPlayerSummary,
+} from "./lib/players";
 import { requireMasterAdminSession } from "./lib/sessions";
 import {
   masterAdminQueryArgs,
@@ -107,11 +111,7 @@ export const updatePlayer = mutation({
     { sessionToken, playerId, displayName, nickname, avatar, blurb },
   ) => {
     await requireMasterAdminSession(ctx, sessionToken, Date.now());
-
-    const player = await ctx.db.get(playerId);
-    if (!player) {
-      throw new Error("Player not found");
-    }
+    await requirePlayer(ctx, playerId);
 
     await ctx.db.patch(playerId, {
       displayName: normalizeRequired(displayName, "Display name"),
@@ -131,11 +131,7 @@ export const removePlayer = mutation({
   },
   handler: async (ctx, { sessionToken, playerId }) => {
     await requireMasterAdminSession(ctx, sessionToken, Date.now());
-
-    const player = await ctx.db.get(playerId);
-    if (!player) {
-      throw new Error("Player not found");
-    }
+    await requirePlayer(ctx, playerId);
 
     const rosterEntries = await ctx.db
       .query("leagueRosters")
@@ -161,11 +157,7 @@ export const addPlayerToLeague = mutation({
     await requireMasterAdminSession(ctx, sessionToken, Date.now());
 
     await requireLeague(ctx, leagueId);
-    const player = await ctx.db.get(playerId);
-
-    if (!player) {
-      throw new Error("Player not found");
-    }
+    await requirePlayer(ctx, playerId);
 
     const existing = await ctx.db
       .query("leagueRosters")
